@@ -3,7 +3,7 @@ require 'rack-cas/cas_request'
 
 class Rack::FakeCAS
 
-  @@cas_session_present = false
+  @@cas_session = nil
 
   def initialize(app, config={}, attributes_config={})
     @app = app
@@ -23,7 +23,7 @@ class Rack::FakeCAS
     when '/login'
       # simulates CAS service (when no CAS session: login page, when CAS session present: redirect back to app)
       # can be also used as a built-in way to get to the login page without needing to return a 401 status
-      if @@cas_session_present
+      if @@cas_session
         redirect_to @request.params['service'] + '?ticket=some-value'
       else
         render_login_page
@@ -31,11 +31,13 @@ class Rack::FakeCAS
 
     when '/logged_in'
       # simulates real CAS redirect back to app after establishing CAS session
-      @@cas_session_present = true # counterpart of setting a session cookie in real CAS
+      @@cas_session = {
+        email: @request.params['email']
+      }
       redirect_to @request.params['service']
 
     when '/logout'
-      @@cas_session_present = false
+      @@cas_session = nil
       @request.session.send respond_to?(:destroy) ? :destroy : :clear
       redirect_to "#{@request.script_name}/"
 
@@ -57,10 +59,10 @@ class Rack::FakeCAS
   protected
 
   def save_cas_data_to_session
-    username = @request.params['username']
+    email = @@cas_session.fetch(:email)
     @request.session['cas'] = {}
     @request.session['cas']['user'] = 'fake-username'
-    @request.session['cas']['extra_attributes'] = @attributes_config.fetch(username, {})
+    @request.session['cas']['extra_attributes'] = @attributes_config.fetch(email, {})
   end
 
   def render_login_page
@@ -78,8 +80,8 @@ class Rack::FakeCAS
   <body>
     <form action="#{@request.script_name}/logged_in" method="post">
       <input type="hidden" name="service" value="#{@request.params['service']}"/>
-      <label for="username">Username</label>
-      <input id="username" name="username" type="text"/>
+      <label for="email">Email</label>
+      <input id="email" name="email" type="text"/>
       <label for="password">Password</label>
       <input id="password" name="password" type="password"/>
       <input type="submit" value="Login"/>

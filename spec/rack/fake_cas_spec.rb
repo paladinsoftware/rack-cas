@@ -8,13 +8,13 @@ describe Rack::FakeCAS do
   describe 'public request' do
     subject { get '/public' }
     its(:status) { should eql 200 }
-    its(:body) { should_not match /username/ }
+    its(:body) { should_not match /email/ }
     its(:body) { should_not match /password/ }
   end
 
   describe 'auth required request' do
     before do
-      described_class.class_variable_set('@@cas_session_present', false)
+      described_class.class_variable_set('@@cas_session', nil)
     end
 
     subject { get '/private' }
@@ -25,16 +25,16 @@ describe Rack::FakeCAS do
 
   describe 'fake_cas_login request' do
     before do
-      described_class.class_variable_set('@@cas_session_present', cas_session_present)
-      get '/login', username: 'janed0', service: 'http://example.org/private'
+      described_class.class_variable_set('@@cas_session', cas_session)
+      get '/login', email: 'janed0@gmail.com', service: 'http://example.org/private'
     end
 
     context 'without cas session' do
-      let(:cas_session_present){ false }
+      let(:cas_session){ nil }
 
       subject { last_response }
       its(:status) { should eql 200 }
-      its(:body) { should match /username/ }
+      its(:body) { should match /email/ }
       its(:body) { should match /password/ }
 
       describe 'session' do
@@ -44,7 +44,11 @@ describe Rack::FakeCAS do
     end
 
     context 'with cas session' do
-      let(:cas_session_present){ true }
+      let(:cas_session) do
+        {
+          email: 'janed0@gmail.com'
+        }
+      end
 
       subject { last_response }
       it { should be_redirect }
@@ -60,8 +64,8 @@ describe Rack::FakeCAS do
 
   describe 'login request' do
     before do
-      described_class.class_variable_set('@@cas_session_present', false)
-      get '/logged_in', username: 'janed0', service: 'http://example.org/private'
+      described_class.class_variable_set('@@cas_session', nil)
+      get '/logged_in', email: 'janed0@gmail.com', service: 'http://example.org/private'
     end
 
     subject { last_response }
@@ -73,8 +77,8 @@ describe Rack::FakeCAS do
       it { should be_nil }
     end
 
-    it 'should have cas_session_present class variable set to true' do
-      expect(described_class.class_variable_get('@@cas_session_present')).to be(true)
+    it 'should have cas_session class variable set' do
+      expect(described_class.class_variable_get('@@cas_session')).to eq(email: 'janed0@gmail.com')
       subject
     end
   end
@@ -119,22 +123,22 @@ describe Rack::FakeCAS do
   describe 'extra attributes' do
     def app
       Rack::FakeCAS.new(CasTestApp.new, {}, {
-                          'janed0' => {
+                          'janed0@gmail.com' => {
                             'name' => 'Jane Doe',
-                            'email' => 'janed0@gmail.com'}
+                            'email2' => 'janed0@example.com'}
                         })
     end
 
     before do
-      described_class.class_variable_set('@@cas_session_present', true)
-      get '/private', username: 'janed0', ticket: 'some-value'
+      described_class.class_variable_set('@@cas_session', { email: 'janed0@gmail.com' })
+      get '/private', ticket: 'some-value'
     end
 
     describe 'session' do
       subject { last_request.session['cas'] }
       it { should_not be_nil }
       its(['extra_attributes']) { should eql({'name' => 'Jane Doe',
-                                              'email' => 'janed0@gmail.com'}) }
+                                              'email2' => 'janed0@example.com'}) }
     end
   end
 end
