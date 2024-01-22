@@ -141,4 +141,41 @@ describe Rack::FakeCAS do
                                               'email2' => 'janed0@example.com'}) }
     end
   end
+
+  describe 'cas session mocking' do
+
+    context 'default email' do
+      subject{ described_class.mock_cas_session! }
+
+      it 'sets cas_session clas variable' do
+        subject
+        expect(described_class.class_variable_get('@@cas_session')).to eq(email: 'email@example.com')
+      end
+    end
+
+    context 'with provided email' do
+      subject{ described_class.mock_cas_session!(email: 'provided@email.com') }
+
+      it 'sets cas_session clas variable' do
+        subject
+        expect(described_class.class_variable_get('@@cas_session')).to eq(email: 'provided@email.com')
+      end
+    end
+
+  end
+
+  describe 'cas session unmocking' do
+
+    subject{ described_class.unmock_cas_session! }
+
+    before do
+      described_class.class_variable_set('@@cas_session', { email: 'some.email@example.com' })
+    end
+
+    it 'sets cas_session clas variable' do
+      subject
+      expect(described_class.class_variable_get('@@cas_session')).to be_nil
+    end
+
+  end
 end

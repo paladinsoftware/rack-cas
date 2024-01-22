@@ -5,6 +5,14 @@ class Rack::FakeCAS
 
   @@cas_session = nil
 
+  def self.mock_cas_session!(email: 'email@example.com')
+    @@cas_session = { email: email }
+  end
+
+  def self.unmock_cas_session!
+    @@cas_session = nil
+  end
+
   def initialize(app, config={}, attributes_config={})
     @app = app
     @config = config || {}
