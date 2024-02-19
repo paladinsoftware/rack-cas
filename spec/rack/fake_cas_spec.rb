@@ -23,43 +23,80 @@ describe Rack::FakeCAS do
     its(:headers) { }
   end
 
-  describe 'fake_cas_login request' do
+  describe 'login request' do
     before do
       described_class.class_variable_set('@@cas_session', cas_session)
-      get '/login', email: 'janed0@gmail.com', service: 'http://example.org/private'
+      get '/login', { email: 'janed0@gmail.com', service: 'http://example.org/private' }, **headers
     end
 
-    context 'without cas session' do
-      let(:cas_session){ nil }
+    context 'ajax request' do
+      let(:headers){ { 'X-Requested-With' => 'XMLHttpRequest' } }
 
-      subject { last_response }
-      its(:status) { should eql 200 }
-      its(:body) { should match /email/ }
-      its(:body) { should match /password/ }
+      context 'without cas session' do
+        let(:cas_session){ nil }
 
-      describe 'session' do
-        subject { last_request.session['cas'] }
-        it { should be_nil }
+        subject { last_response }
+        its(:status) { should eql 401 }
+        its(:body) { should be_nil.or be_empty }
+
+        describe 'session' do
+          subject { last_request.session['cas'] }
+          it { should be_nil }
+        end
+      end
+
+      context 'with cas session' do
+        let(:cas_session) do
+          {
+            email: 'janed0@gmail.com'
+          }
+        end
+
+        subject { last_response }
+        it { should be_redirect }
+        its(:location) { should eql 'http://example.org/private?ticket=some-value' }
+
+        describe 'session' do
+          subject { last_request.session['cas'] }
+          it { should be_nil }
+        end
       end
     end
 
-    context 'with cas session' do
-      let(:cas_session) do
-        {
-          email: 'janed0@gmail.com'
-        }
+    context 'non ajax request' do
+      let(:headers){ {} }
+
+      context 'without cas session' do
+        let(:cas_session){ nil }
+
+        subject { last_response }
+        its(:status) { should eql 200 }
+        its(:body) { should match /email/ }
+        its(:body) { should match /password/ }
+
+        describe 'session' do
+          subject { last_request.session['cas'] }
+          it { should be_nil }
+        end
       end
 
-      subject { last_response }
-      it { should be_redirect }
-      its(:location) { should eql 'http://example.org/private?ticket=some-value' }
+      context 'with cas session' do
+        let(:cas_session) do
+          {
+            email: 'janed0@gmail.com'
+          }
+        end
 
-      describe 'session' do
-        subject { last_request.session['cas'] }
-        it { should be_nil }
+        subject { last_response }
+        it { should be_redirect }
+        its(:location) { should eql 'http://example.org/private?ticket=some-value' }
+
+        describe 'session' do
+          subject { last_request.session['cas'] }
+          it { should be_nil }
+        end
       end
     end
-
   end
 
   describe 'login request' do

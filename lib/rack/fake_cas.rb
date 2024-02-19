@@ -34,7 +34,11 @@ class Rack::FakeCAS
       if @@cas_session
         redirect_to @request.params['service'] + '?ticket=some-value'
       else
-        render_login_page
+        if ajax_request?
+          render_status 401
+        else
+          render_login_page
+        end
       end
 
     when '/logged_in'
@@ -77,6 +81,19 @@ class Rack::FakeCAS
     [ 200, { 'Content-Type' => 'text/html' }, [login_page] ]
   end
 
+  def redirect_to(url)
+    [ 302, { 'Content-Type' => 'text/plain', 'Location' => url }, ['Redirecting you...'] ]
+  end
+
+  def render_status(status)
+    [ status, { 'Content-Type' => 'text/plain' }, [] ]
+  end
+
+  def ajax_request?
+    header_value = @request.get_header('HTTP_X_REQUESTED_WITH') || @request.get_header('X-Requested-With')
+    header_value == 'XMLHttpRequest'
+  end
+
   def login_page
     <<-EOS
 <!doctype html>
@@ -99,7 +116,4 @@ class Rack::FakeCAS
     EOS
   end
 
-  def redirect_to(url)
-    [ 302, { 'Content-Type' => 'text/plain', 'Location' => url }, ['Redirecting you...'] ]
-  end
 end
