@@ -30,7 +30,9 @@ describe Rack::FakeCAS do
     end
 
     context 'ajax request' do
-      let(:headers){ { 'X-Requested-With' => 'XMLHttpRequest' } }
+      let(:headers){ { 'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest' } }
+      # in reality header should be sent as 'X-Requested-With', and it would appear in Rack::Request as 'HTTP_X_REQUESTED_WITH',
+      # but for some reason here in specs it works differently, so setting the latter value
 
       context 'without cas session' do
         let(:cas_session){ nil }

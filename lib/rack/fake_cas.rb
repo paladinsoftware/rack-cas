@@ -34,7 +34,7 @@ class Rack::FakeCAS
       if @@cas_session
         redirect_to @request.params['service'] + '?ticket=some-value'
       else
-        if ajax_request?
+        if @request.xhr?
           render_status 401
         else
           render_login_page
@@ -87,11 +87,6 @@ class Rack::FakeCAS
 
   def render_status(status)
     [ status, { 'Content-Type' => 'text/plain' }, [] ]
-  end
-
-  def ajax_request?
-    header_value = @request.get_header('HTTP_X_REQUESTED_WITH') || @request.get_header('X-Requested-With')
-    header_value == 'XMLHttpRequest'
   end
 
   def login_page
