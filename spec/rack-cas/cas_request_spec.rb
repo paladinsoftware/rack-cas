@@ -8,6 +8,8 @@ describe CASRequest do
 
   subject { CASRequest.new(last_request) }
 
+  before { Rack::FakeCAS.mock_cas_session! }
+
   context 'ticket validation request' do
     before { get '/private/something?ticket=ST-0123456789ABCDEFGHIJKLMNOPQRS' }
     its(:ticket_validation?) { should be true }
