@@ -32,7 +32,8 @@ class Rack::FakeCAS
       # simulates CAS service (when no CAS session: login page, when CAS session present: redirect back to app)
       # can be also used as a built-in way to get to the login page without needing to return a 401 status
       if @@cas_session
-        redirect_to @request.params['service'] + '?ticket=some-value'
+        service_with_ticket_param = modify_query_params!(@request.params['service']){ _1['ticket'] = 'some-value' }
+        redirect_to service_with_ticket_param
       else
         if @request.xhr?
           render_status 401
@@ -56,7 +57,8 @@ class Rack::FakeCAS
     else
       if @request.params['ticket'] # simulates ticket validation
         save_cas_data_to_session
-        redirect_to @request.base_url + @request.path
+        url_without_ticket_param = modify_query_params!(@request.url){ _1.delete('ticket') }
+        redirect_to url_without_ticket_param
       else
         response = @app.call(env)
         if response[0] == 401 # access denied - app did not found CAS session data
@@ -87,6 +89,14 @@ class Rack::FakeCAS
 
   def render_status(status)
     [ status, { 'Content-Type' => 'text/plain' }, [] ]
+  end
+
+  def modify_query_params!(url_string, &block)
+    service_uri = URI(url_string)
+    query_params = Rack::Utils.parse_query service_uri.query
+    block.yield(query_params)
+    service_uri.query = Rack::Utils.build_query(query_params)
+    service_uri.to_s
   end
 
   def login_page
