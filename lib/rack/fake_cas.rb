@@ -95,7 +95,8 @@ class Rack::FakeCAS
     service_uri = URI(url_string)
     query_params = Rack::Utils.parse_query service_uri.query
     block.yield(query_params)
-    service_uri.query = Rack::Utils.build_query(query_params)
+    query = query_params.empty? ? nil : Rack::Utils.build_query(query_params)
+    service_uri.query = query
     service_uri.to_s
   end
 
