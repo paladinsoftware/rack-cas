@@ -23,11 +23,13 @@ describe Rack::FakeCAS do
     its(:headers) { }
   end
 
-  describe 'login request' do
+  describe 'app auth request' do
     before do
       described_class.class_variable_set('@@cas_session', cas_session)
-      get '/login', { email: 'janed0@gmail.com', service: 'http://example.org/private' }, **headers
+      get '/login', { service: "http://example.org/private#{query_params_string}" }, **headers
     end
+
+    let(:query_params_string){ '' }
 
     context 'ajax request' do
       let(:headers){ { 'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest' } }
@@ -56,7 +58,32 @@ describe Rack::FakeCAS do
 
         subject { last_response }
         it { should be_redirect }
-        its(:location) { should eql 'http://example.org/private?ticket=some-value' }
+
+        context 'empty query params' do
+          its(:location) { should eql 'http://example.org/private?ticket=some-value' }
+        end
+
+        context 'non-empty query params' do
+          let(:query_params_string){ '?param1=blah&param2=bleh'}
+
+          it 'properly merges existing query params with ticket param' do
+            expect(subject.location).to include('param1=blah')
+            expect(subject.location).to include('param2=bleh')
+            expect(subject.location).to include('ticket=some-value')
+
+            uri = URI(subject.location)
+            expect(uri.scheme).to eq('http')
+            expect(uri.host).to eq('example.org')
+            expect(uri.path).to eq('/private')
+            expect(Rack::Utils.parse_query(uri.query)).to(
+              eq(
+                'param1' => 'blah',
+                'param2' => 'bleh',
+                'ticket' => 'some-value',
+                )
+            )
+          end
+        end
 
         describe 'session' do
           subject { last_request.session['cas'] }
@@ -91,7 +118,32 @@ describe Rack::FakeCAS do
 
         subject { last_response }
         it { should be_redirect }
-        its(:location) { should eql 'http://example.org/private?ticket=some-value' }
+
+        context 'empty query params' do
+          its(:location) { should eql 'http://example.org/private?ticket=some-value' }
+        end
+
+        context 'non-empty query params' do
+          let(:query_params_string){ '?param1=blah&param2=bleh'}
+
+          it 'properly merges existing query params with ticket param' do
+            expect(subject.location).to include('param1=blah')
+            expect(subject.location).to include('param2=bleh')
+            expect(subject.location).to include('ticket=some-value')
+
+            uri = URI(subject.location)
+            expect(uri.scheme).to eq('http')
+            expect(uri.host).to eq('example.org')
+            expect(uri.path).to eq('/private')
+            expect(Rack::Utils.parse_query(uri.query)).to(
+              eq(
+                'param1' => 'blah',
+                'param2' => 'bleh',
+                'ticket' => 'some-value',
+              )
+            )
+          end
+        end
 
         describe 'session' do
           subject { last_request.session['cas'] }
@@ -101,7 +153,7 @@ describe Rack::FakeCAS do
     end
   end
 
-  describe 'login request' do
+  describe 'cas auth request' do
     before do
       described_class.class_variable_set('@@cas_session', nil)
       get '/logged_in', email: 'janed0@gmail.com', service: 'http://example.org/private'
