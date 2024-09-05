@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rack-cas (0.17.0)
+    rack-cas (1.0.0)
       addressable (~> 2.3)
       nokogiri (~> 1.5)
       rack (>= 2.0.8)
