@@ -1,7 +1,8 @@
 require 'rack/session/abstract/id'
+require 'action_dispatch/middleware/session/abstract_store'
 
 module RackCAS
-  class ActiveRecordStore < Rack::Session::Abstract::PersistedSecure
+  class ActiveRecordStore < ActionDispatch::Session::AbstractSecureStore
 
     class Session < ActiveRecord::Base
     end
