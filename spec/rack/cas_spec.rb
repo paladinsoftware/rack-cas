@@ -35,6 +35,46 @@ describe Rack::CAS do
       it { should_not have_key 'title' }
     end
 
+    context 'with company_uuid in extra_attributes' do
+      before { get '/private?ticket=ST-0123456789ABCDEFGHIJKLMNOPQRS' }
+
+      it 'should store company_uuid in session extra_attributes' do
+        expect(last_request.session['cas']['extra_attributes']).to have_key 'company_uuid'
+      end
+
+      it 'should store company_uuid separately in session' do
+        expect(last_request.session['company_uuid']).to eql '550e8400-e29b-41d4-a716-446655440000'
+      end
+    end
+
+    context 'with extra_attributes_filter excluding company_uuid' do
+      let(:app_options) { { extra_attributes_filter: [:cn, :mail] } }
+
+      before { get '/private?ticket=ST-0123456789ABCDEFGHIJKLMNOPQRS' }
+
+      it 'should not include company_uuid in filtered extra_attributes' do
+        expect(last_request.session['cas']['extra_attributes']).not_to have_key 'company_uuid'
+      end
+
+      it 'should not store company_uuid in session when filtered out' do
+        expect(last_request.session['company_uuid']).to be_nil
+      end
+    end
+
+    context 'with extra_attributes_filter including company_uuid' do
+      let(:app_options) { { extra_attributes_filter: [:cn, :mail, :company_uuid] } }
+
+      before { get '/private?ticket=ST-0123456789ABCDEFGHIJKLMNOPQRS' }
+
+      it 'should include company_uuid in filtered extra_attributes' do
+        expect(last_request.session['cas']['extra_attributes']).to have_key 'company_uuid'
+      end
+
+      it 'should store company_uuid in session' do
+        expect(last_request.session['company_uuid']).to eql '550e8400-e29b-41d4-a716-446655440000'
+      end
+    end
+
     context 'with an invalid ticket' do
       before { RackCAS::ServiceValidationResponse.any_instance.stub(:user) { raise RackCAS::ServiceValidationResponse::TicketInvalidError } }
       its(:status) { should eql 302 }

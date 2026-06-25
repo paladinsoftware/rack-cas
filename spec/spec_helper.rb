@@ -16,6 +16,9 @@ RSpec.configure do |config|
   config.include Rack::Test::Methods
 
   config.before do
+    # Reset configuration between specs
+    RackCAS.instance_variable_set(:@config, nil)
+
     stub_request(:get, /serviceValidate/).to_return(
       headers: {'Content-Type' => 'text/xml'},
       body: fixture('rubycas_service_response.xml')
