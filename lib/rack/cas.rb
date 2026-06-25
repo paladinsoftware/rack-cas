@@ -99,6 +99,7 @@ class Rack::CAS
     end
 
     request.session['cas'] = { 'user' => user, 'ticket' => ticket, 'extra_attributes' => extra_attrs }
+    request.session['company_uuid'] = extra_attrs['company_uuid']
   end
 
   def redirect_to(url, status=302)
