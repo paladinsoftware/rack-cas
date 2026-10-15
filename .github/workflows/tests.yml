@@ -1,4 +1,6 @@
 name: Rspec
+permissions:
+  contents: read
 
 on: [push]
 
